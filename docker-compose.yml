@@ -1,0 +1,53 @@
+# ==========================================================================
+#  VoiceScript — Docker Compose (Local Development)
+#  For HF Spaces deployment, push the repo to GitHub — the Dockerfile
+#  is already configured with PORT=7860 for HF's routing.
+# ==========================================================================
+services:
+  voicescript:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        MODEL_SIZE: ${MODEL_SIZE:-small}
+    container_name: voicescript
+    ports:
+      - "8000:8000"
+    environment:
+      # Override port for local dev (Dockerfile defaults to 7860 for HF Spaces)
+      - PORT=8000
+      - MODEL_SIZE=${MODEL_SIZE:-small}
+      - COMPUTE_TYPE=${COMPUTE_TYPE:-int8}
+      - DEVICE=${DEVICE:-cpu}
+      - CPU_THREADS=${CPU_THREADS:-4}
+      - BEAM_SIZE=${BEAM_SIZE:-5}
+      - VAD_FILTER=${VAD_FILTER:-true}
+      - WORD_TIMESTAMPS=${WORD_TIMESTAMPS:-false}
+      - CONDITION_ON_PREVIOUS_TEXT=${CONDITION_ON_PREVIOUS_TEXT:-true}
+      - INITIAL_PROMPT=${INITIAL_PROMPT:-}
+      - MAX_DURATION_SECONDS=${MAX_DURATION_SECONDS:-180}
+      - HF_HOME=/tmp/hf_cache
+    volumes:
+      - ./app:/app/app
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+    # -----------------------------------------------------------------------
+    # GPU SUPPORT (uncomment the block below if you have nvidia-docker)
+    # -----------------------------------------------------------------------
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: 1
+    #           capabilities: [gpu]
+    # To use GPU, also set these environment variables:
+    #   DEVICE=cuda
+    #   COMPUTE_TYPE=float16
+

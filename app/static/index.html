@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Upload audio or video files and get AI-powered transcriptions with timestamps using local Faster-Whisper models." />
+  <title>Vaani — AI Speech-to-Text</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ================================================================
+       Design Tokens
+       ================================================================ */
+    :root {
+      --bg-primary: #0a0a0f;
+      --bg-secondary: #12121a;
+      --bg-card: #16161f;
+      --bg-card-hover: #1c1c28;
+      --bg-glass: rgba(22, 22, 31, 0.7);
+      --border-subtle: rgba(255, 255, 255, 0.06);
+      --border-active: rgba(139, 92, 246, 0.4);
+      --text-primary: #f0f0f5;
+      --text-secondary: #9898a8;
+      --text-muted: #5a5a6e;
+      --accent: #8b5cf6;
+      --accent-light: #a78bfa;
+      --accent-glow: rgba(139, 92, 246, 0.15);
+      --success: #34d399;
+      --success-glow: rgba(52, 211, 153, 0.15);
+      --error: #f87171;
+      --error-glow: rgba(248, 113, 113, 0.15);
+      --warning: #fbbf24;
+      --gradient-accent: linear-gradient(135deg, #8b5cf6, #6366f1, #3b82f6);
+      --gradient-bg: radial-gradient(ellipse at 20% 0%, rgba(139, 92, 246, 0.08) 0%, transparent 60%),
+                     radial-gradient(ellipse at 80% 100%, rgba(59, 130, 246, 0.06) 0%, transparent 60%);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.3);
+      --shadow-md: 0 4px 20px rgba(0,0,0,0.4);
+      --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
+      --shadow-glow: 0 0 60px rgba(139, 92, 246, 0.1);
+      --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+
+    /* ================================================================
+       Reset & Base
+       ================================================================ */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body {
+      font-family: var(--font);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: var(--gradient-bg);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ================================================================
+       Layout
+       ================================================================ */
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    /* ================================================================
+       Header
+       ================================================================ */
+    .header {
+      text-align: center;
+      margin-bottom: 48px;
+    }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--gradient-accent);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      box-shadow: var(--shadow-glow);
+    }
+    .logo-text {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: var(--gradient-accent);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .header p {
+      color: var(--text-secondary);
+      font-size: 15px;
+      font-weight: 400;
+      max-width: 460px;
+      margin: 0 auto;
+    }
+
+    /* ================================================================
+       Drop Zone
+       ================================================================ */
+    .dropzone {
+      position: relative;
+      border: 2px dashed var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: all var(--transition);
+      background: var(--bg-card);
+      overflow: hidden;
+    }
+    .dropzone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: var(--accent-glow);
+      opacity: 0;
+      transition: opacity var(--transition);
+      border-radius: inherit;
+    }
+    .dropzone:hover,
+    .dropzone.drag-over {
+      border-color: var(--border-active);
+      background: var(--bg-card-hover);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-glow);
+    }
+    .dropzone:hover::before,
+    .dropzone.drag-over::before {
+      opacity: 1;
+    }
+    .dropzone-icon {
+      position: relative;
+      z-index: 1;
+      font-size: 48px;
+      margin-bottom: 16px;
+      display: block;
+      animation: float 3s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .dropzone-title {
+      position: relative;
+      z-index: 1;
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: var(--text-primary);
+    }
+    .dropzone-subtitle {
+      position: relative;
+      z-index: 1;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .dropzone-subtitle span {
+      color: var(--accent-light);
+      font-weight: 500;
+    }
+    .dropzone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    /* ================================================================
+       File Info Bar
+       ================================================================ */
+    .file-info {
+      display: none;
+      align-items: center;
+      gap: 14px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      margin-top: 20px;
+      animation: slideUp 0.3s ease;
+    }
+    .file-info.visible { display: flex; }
+    .file-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      background: var(--accent-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .file-details { flex: 1; min-width: 0; }
+    .file-name {
+      font-weight: 600;
+      font-size: 14px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .file-size { font-size: 12px; color: var(--text-muted); }
+    .file-remove {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1px solid var(--border-subtle);
+      background: transparent;
+      color: var(--text-secondary);
+      cursor: pointer;
+      font-size: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all var(--transition);
+    }
+    .file-remove:hover {
+      background: var(--error-glow);
+      border-color: var(--error);
+      color: var(--error);
+    }
+
+    /* ================================================================
+       Media Player Card
+       ================================================================ */
+    .media-player-card {
+      display: none;
+      margin-top: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 16px 20px;
+      animation: slideUp 0.3s ease;
+    }
+    .media-player-card.visible { display: block; }
+    .media-player-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .media-player-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .speed-controls {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--bg-secondary);
+      border-radius: var(--radius-sm);
+      padding: 2px;
+    }
+    .speed-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 600;
+      font-family: var(--font);
+      padding: 3px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .speed-btn:hover { color: var(--text-primary); }
+    .speed-btn.active {
+      background: var(--gradient-accent);
+      color: #fff;
+    }
+    .media-wrapper {
+      width: 100%;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      background: #000;
+    }
+    .media-element {
+      width: 100%;
+      display: block;
+      outline: none;
+    }
+    audio.media-element {
+      height: 48px;
+      background: var(--bg-secondary);
+    }
+    video.media-element {
+      max-height: 380px;
+      object-fit: contain;
+    }
+
+    /* ================================================================
+       Transcribe Button
+       ================================================================ */
+    .actions { margin-top: 24px; text-align: center; }
+    .btn-transcribe {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 14px 40px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: var(--font);
+      color: #fff;
+      background: var(--gradient-accent);
+      border: none;
+      border-radius: var(--radius-lg);
+      cursor: pointer;
+      transition: all var(--transition);
+      box-shadow: 0 4px 24px rgba(139, 92, 246, 0.3);
+      overflow: hidden;
+    }
+    .btn-transcribe:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 32px rgba(139, 92, 246, 0.45);
+    }
+    .btn-transcribe:active:not(:disabled) {
+      transform: translateY(0);
+    }
+    .btn-transcribe:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* ================================================================
+       Processing State
+       ================================================================ */
+    .processing-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xl);
+      padding: 40px 32px;
+      margin-top: 32px;
+      text-align: center;
+      animation: slideUp 0.4s ease;
+    }
+    .processing-card.visible { display: block; }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 3px solid var(--border-subtle);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      margin: 0 auto 20px;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .processing-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .processing-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    /* Pulse dots */
+    .pulse-dots { display: inline-flex; gap: 4px; margin-left: 4px; }
+    .pulse-dots span {
+      width: 4px; height: 4px;
+      background: var(--accent-light);
+      border-radius: 50%;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+    .pulse-dots span:nth-child(2) { animation-delay: 0.2s; }
+    .pulse-dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes pulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* ================================================================
+       Results
+       ================================================================ */
+    .results {
+      display: none;
+      margin-top: 32px;
+      animation: slideUp 0.4s ease;
+    }
+    .results.visible { display: block; }
+
+    .results-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+    .results-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .results-meta {
+      display: flex;
+      gap: 16px;
+    }
+    .meta-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 500;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    /* Tabs */
+    .tabs {
+      display: flex;
+      gap: 4px;
+      background: var(--bg-secondary);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+    }
+    .tab {
+      flex: 1;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font);
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .tab.active {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+    .tab:hover:not(.active) { color: var(--text-secondary); }
+
+    /* Full text panel */
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .transcript-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      font-size: 14px;
+      line-height: 1.8;
+      color: var(--text-primary);
+      max-height: 400px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .transcript-box::-webkit-scrollbar { width: 6px; }
+    .transcript-box::-webkit-scrollbar-track { background: transparent; }
+    .transcript-box::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+
+    /* Segments panel */
+    .segments-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 420px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+    .segments-list::-webkit-scrollbar { width: 6px; }
+    .segments-list::-webkit-scrollbar-track { background: transparent; }
+    .segments-list::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
+    .segment {
+      display: flex;
+      gap: 14px;
+      padding: 14px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      transition: all var(--transition);
+      cursor: pointer;
+    }
+    .segment:hover {
+      border-color: var(--border-active);
+      background: var(--bg-card-hover);
+    }
+    .segment.playing {
+      border-color: var(--accent);
+      background: rgba(139, 92, 246, 0.12);
+      box-shadow: 0 0 16px rgba(139, 92, 246, 0.2);
+    }
+    .segment-time {
+      flex-shrink: 0;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent-light);
+      font-variant-numeric: tabular-nums;
+      min-width: 115px;
+      padding: 4px 8px;
+      border-radius: var(--radius-sm);
+      background: rgba(139, 92, 246, 0.1);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all var(--transition);
+    }
+    .segment:hover .segment-time {
+      background: var(--accent);
+      color: #fff;
+    }
+    .segment-text {
+      font-size: 14px;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+
+    /* Copy button */
+    .btn-copy {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: var(--font);
+      color: var(--text-secondary);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+    .btn-copy:hover {
+      border-color: var(--accent);
+      color: var(--accent-light);
+    }
+    .btn-copy.copied {
+      border-color: var(--success);
+      color: var(--success);
+    }
+
+    /* ================================================================
+       Error
+       ================================================================ */
+    .error-card {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid rgba(248, 113, 113, 0.2);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-top: 20px;
+      color: var(--error);
+      font-size: 14px;
+      animation: slideUp 0.3s ease;
+    }
+    .error-card.visible { display: flex; gap: 12px; align-items: flex-start; }
+    .error-card .error-icon { font-size: 20px; flex-shrink: 0; }
+    .error-card .error-msg { flex: 1; }
+
+    /* ================================================================
+       Animations
+       ================================================================ */
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ================================================================
+       Footer
+       ================================================================ */
+    .footer {
+      text-align: center;
+      margin-top: 56px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+    .footer a {
+      color: var(--accent-light);
+      text-decoration: none;
+    }
+
+    /* ================================================================
+       Responsive
+       ================================================================ */
+    .lang-bar {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+    .lang-label {
+      font-size: 13px;
+      color: var(--text-secondary);
+      font-weight: 500;
+    }
+    .lang-select-wrapper {
+      position: relative;
+    }
+    .lang-select {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-family: var(--font);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      transition: all var(--transition);
+    }
+    .lang-select:hover, .lang-select:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(139, 92, 246, 0.2);
+    }
+
+    @media (max-width: 640px) {
+      .app { padding: 24px 16px 60px; }
+      .dropzone { padding: 40px 20px; }
+      .results-header { flex-direction: column; gap: 12px; align-items: flex-start; }
+      .segment { flex-direction: column; gap: 4px; }
+      .segment-time { min-width: 0; }
+      .lang-bar { justify-content: space-between; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">🎙️</div>
+        <span class="logo-text">Vaani</span>
+      </div>
+      <p>Drop your audio or video files and get AI-powered transcriptions with precise timestamps — all running locally.</p>
+    </header>
+
+    <!-- Language Selector Bar -->
+    <div class="lang-bar">
+      <label for="langSelect" class="lang-label">Language Mode:</label>
+      <div class="lang-select-wrapper">
+        <select id="langSelect" class="lang-select">
+          <option value="auto" selected>🌐 Auto Detect</option>
+          <option value="en">🇺🇸 English</option>
+          <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Drop Zone -->
+    <div class="dropzone" id="dropzone">
+      <span class="dropzone-icon">📂</span>
+      <div class="dropzone-title">Drag & drop your file here</div>
+      <div class="dropzone-subtitle">or click to browse · <span>MP3, WAV, MP4, MKV, and more</span> · max 500 MB</div>
+      <input type="file" id="fileInput" accept=".mp3,.wav,.mp4,.m4a,.ogg,.webm,.flac,.mkv,.avi,.mov" />
+    </div>
+
+    <!-- File Info -->
+    <div class="file-info" id="fileInfo">
+      <div class="file-icon">🎵</div>
+      <div class="file-details">
+        <div class="file-name" id="fileName">—</div>
+        <div class="file-size" id="fileSize">—</div>
+      </div>
+      <button class="file-remove" id="fileRemove" title="Remove file">✕</button>
+    </div>
+
+    <!-- Media Player Card -->
+    <div class="media-player-card" id="mediaPlayerCard">
+      <div class="media-player-header">
+        <span class="media-player-title">▶ Media Player</span>
+        <div class="speed-controls" id="speedControls">
+          <button class="speed-btn" data-speed="0.75">0.75x</button>
+          <button class="speed-btn active" data-speed="1">1x</button>
+          <button class="speed-btn" data-speed="1.25">1.25x</button>
+          <button class="speed-btn" data-speed="1.5">1.5x</button>
+          <button class="speed-btn" data-speed="2">2x</button>
+        </div>
+      </div>
+      <div class="media-wrapper" id="mediaWrapper">
+        <!-- Audio or Video injected dynamically -->
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="actions">
+      <button class="btn-transcribe" id="btnTranscribe" disabled>
+        ✦ Transcribe
+      </button>
+    </div>
+
+    <!-- Error -->
+    <div class="error-card" id="errorCard">
+      <span class="error-icon">⚠️</span>
+      <span class="error-msg" id="errorMsg"></span>
+    </div>
+
+    <!-- Processing -->
+    <div class="processing-card" id="processingCard">
+      <div class="spinner"></div>
+      <div class="processing-title">Transcribing your file</div>
+      <div class="processing-subtitle">
+        This may take a moment depending on file length
+        <span class="pulse-dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results" id="results">
+      <div class="results-header">
+        <div class="results-title">✅ Transcript Ready</div>
+        <div class="results-meta">
+          <span class="meta-badge" id="metaLang">🌐 —</span>
+          <span class="meta-badge" id="metaDuration">⏱ —</span>
+        </div>
+      </div>
+
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-tab="full" role="tab">Full Text</button>
+        <button class="tab" data-tab="segments" role="tab">Timestamps</button>
+      </div>
+
+      <div class="tab-panel active" id="panel-full">
+        <div class="transcript-box" id="transcriptText"></div>
+        <div style="margin-top: 12px; text-align: right;">
+          <button class="btn-copy" id="btnCopy">📋 Copy text</button>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="panel-segments">
+        <div class="segments-list" id="segmentsList"></div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      Powered by <a href="https://github.com/SYSTRAN/faster-whisper" target="_blank">Faster-Whisper</a> · Runs 100% locally · No data leaves your machine
+    </footer>
+
+  </div>
+
+  <script>
+    /* ==================================================================
+       DOM refs
+       ================================================================== */
+    const $dropzone      = document.getElementById('dropzone');
+    const $fileInput     = document.getElementById('fileInput');
+    const $fileInfo      = document.getElementById('fileInfo');
+    const $fileName      = document.getElementById('fileName');
+    const $fileSize      = document.getElementById('fileSize');
+    const $fileRemove    = document.getElementById('fileRemove');
+    const $btnTranscribe = document.getElementById('btnTranscribe');
+    const $errorCard     = document.getElementById('errorCard');
+    const $errorMsg      = document.getElementById('errorMsg');
+    const $processingCard= document.getElementById('processingCard');
+    const $results       = document.getElementById('results');
+    const $transcriptText= document.getElementById('transcriptText');
+    const $segmentsList  = document.getElementById('segmentsList');
+    const $metaLang      = document.getElementById('metaLang');
+    const $metaDuration  = document.getElementById('metaDuration');
+    const $btnCopy       = document.getElementById('btnCopy');
+    const $langSelect    = document.getElementById('langSelect');
+
+    let selectedFile = null;
+    let currentObjectUrl = null;
+    let currentMediaEl = null;
+    let currentSegments = [];
+
+    const $mediaPlayerCard = document.getElementById('mediaPlayerCard');
+    const $mediaWrapper    = document.getElementById('mediaWrapper');
+    const $speedButtons    = document.querySelectorAll('.speed-btn');
+
+    function isVideoFile(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      return ['mp4', 'webm', 'mov', 'mkv', 'avi'].includes(ext);
+    }
+
+    function setupMediaPlayer(file) {
+      if (currentObjectUrl) {
+        URL.revokeObjectURL(currentObjectUrl);
+        currentObjectUrl = null;
+      }
+      $mediaWrapper.innerHTML = '';
+      currentMediaEl = null;
+
+      if (!file) {
+        $mediaPlayerCard.classList.remove('visible');
+        return;
+      }
+
+      currentObjectUrl = URL.createObjectURL(file);
+      const isVideo = isVideoFile(file.name);
+      const mediaEl = document.createElement(isVideo ? 'video' : 'audio');
+      mediaEl.className = 'media-element';
+      mediaEl.controls = true;
+      mediaEl.playsInline = true;
+      mediaEl.src = currentObjectUrl;
+      mediaEl.id = 'mediaPlayer';
+
+      // Active segment auto-highlighting during playback
+      mediaEl.addEventListener('timeupdate', () => {
+        const ct = mediaEl.currentTime;
+        const segmentEls = $segmentsList.querySelectorAll('.segment');
+        segmentEls.forEach((el, idx) => {
+          const seg = currentSegments[idx];
+          if (seg && ct >= seg.start && ct < seg.end) {
+            el.classList.add('playing');
+          } else {
+            el.classList.remove('playing');
+          }
+        });
+      });
+
+      $mediaWrapper.appendChild(mediaEl);
+      currentMediaEl = mediaEl;
+      $mediaPlayerCard.classList.add('visible');
+
+      // Reset speed buttons
+      $speedButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.speed === '1'));
+    }
+
+    $speedButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const speed = parseFloat(btn.dataset.speed);
+        if (currentMediaEl) {
+          currentMediaEl.playbackRate = speed;
+        }
+        $speedButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    function seekAndPlay(startSeconds) {
+      if (currentMediaEl) {
+        currentMediaEl.currentTime = startSeconds;
+        currentMediaEl.play();
+      }
+    }
+
+    /* ==================================================================
+       Helpers
+       ================================================================== */
+    function formatBytes(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function formatTime(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = Math.floor(seconds % 60);
+      const ms = Math.round((seconds % 1) * 100);
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
+    }
+
+    function showError(msg) {
+      $errorMsg.textContent = msg;
+      $errorCard.classList.add('visible');
+    }
+    function hideError() { $errorCard.classList.remove('visible'); }
+
+    function setFile(file) {
+      if (!file) return;
+      selectedFile = file;
+      $fileName.textContent = file.name;
+      $fileSize.textContent = formatBytes(file.size);
+      $fileInfo.classList.add('visible');
+      $btnTranscribe.disabled = false;
+      setupMediaPlayer(file);
+      hideError();
+    }
+
+    function clearFile() {
+      selectedFile = null;
+      $fileInput.value = '';
+      $fileInfo.classList.remove('visible');
+      $btnTranscribe.disabled = true;
+      setupMediaPlayer(null);
+      hideError();
+    }
+
+    /* ==================================================================
+       Drag & Drop
+       ================================================================== */
+    $dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      $dropzone.classList.add('drag-over');
+    });
+    $dropzone.addEventListener('dragleave', () => $dropzone.classList.remove('drag-over'));
+    $dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      $dropzone.classList.remove('drag-over');
+      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+    });
+    $fileInput.addEventListener('change', () => {
+      if ($fileInput.files.length) setFile($fileInput.files[0]);
+    });
+    $fileRemove.addEventListener('click', clearFile);
+
+    /* ==================================================================
+       Tabs
+       ================================================================== */
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+      });
+    });
+
+    /* ==================================================================
+       Copy
+       ================================================================== */
+    $btnCopy.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText($transcriptText.textContent);
+        $btnCopy.classList.add('copied');
+        $btnCopy.textContent = '✓ Copied!';
+        setTimeout(() => {
+          $btnCopy.classList.remove('copied');
+          $btnCopy.textContent = '📋 Copy text';
+        }, 2000);
+      } catch { /* clipboard may fail in non-HTTPS */ }
+    });
+
+    /* ==================================================================
+       Transcribe
+       ================================================================== */
+    $btnTranscribe.addEventListener('click', async () => {
+      if (!selectedFile) return;
+      hideError();
+      $results.classList.remove('visible');
+      $processingCard.classList.add('visible');
+      $btnTranscribe.disabled = true;
+
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+      if ($langSelect && $langSelect.value) {
+        formData.append('language', $langSelect.value);
+      }
+
+      const MAX_RETRIES = 40;    // 40 × 3s = 2 minutes max cold-start wait
+      const RETRY_DELAY = 3000;  // 3 seconds between retries
+      let attempt = 0;
+
+      const $procTitle = $processingCard.querySelector('.processing-title');
+      const $procSub   = $processingCard.querySelector('.processing-subtitle');
+      const origTitle   = $procTitle.innerHTML;
+      const origSub     = $procSub.innerHTML;
+
+      async function tryTranscribe() {
+        try {
+          const res = await fetch('/transcribe', { method: 'POST', body: formData });
+
+          // Cold start: model not loaded yet — retry
+          if (res.status === 503) {
+            attempt++;
+            if (attempt >= MAX_RETRIES) {
+              throw new Error('Model is still loading after 2 minutes. Please try again later.');
+            }
+            $procTitle.textContent = '🔄 Waking up the model…';
+            $procSub.innerHTML = `The AI model is loading (attempt ${attempt}/${MAX_RETRIES}). This happens on first use after the server sleeps. <span class="pulse-dots"><span></span><span></span><span></span></span>`;
+            await new Promise(r => setTimeout(r, RETRY_DELAY));
+            return tryTranscribe();
+          }
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            throw new Error(data.detail || `Server error (${res.status})`);
+          }
+
+          // Populate results
+          $transcriptText.textContent = data.text || '(no speech detected)';
+          const langCode = (data.detected_language || data.language || '—').toUpperCase();
+          const probText = (data.language_probability !== undefined && data.language_probability !== null)
+            ? ` (${Math.round(data.language_probability * 100)}%)`
+            : '';
+          $metaLang.textContent = '🌐 ' + langCode + probText;
+          $metaDuration.textContent = '⏱ ' + (data.duration ? formatTime(data.duration) : '—');
+
+          currentSegments = data.segments || [];
+          $segmentsList.innerHTML = '';
+          if (data.segments && data.segments.length) {
+            data.segments.forEach(seg => {
+              const el = document.createElement('div');
+              el.className = 'segment';
+              el.title = `Click to play from ${formatTime(seg.start)}`;
+              el.innerHTML = `
+                <span class="segment-time">▶ ${formatTime(seg.start)} → ${formatTime(seg.end)}</span>
+                <span class="segment-text">${escapeHtml(seg.text)}</span>`;
+              el.addEventListener('click', () => seekAndPlay(seg.start));
+              $segmentsList.appendChild(el);
+            });
+          }
+
+          $processingCard.classList.remove('visible');
+          $results.classList.add('visible');
+        } catch (err) {
+          // Network error (container not up yet on HF Spaces)
+          if (err.name === 'TypeError' && err.message.includes('fetch')) {
+            attempt++;
+            if (attempt >= MAX_RETRIES) {
+              $processingCard.classList.remove('visible');
+              showError('Server is not responding. Please wait a moment and try again.');
+              return;
+            }
+            $procTitle.textContent = '🔄 Waking up the server…';
+            $procSub.innerHTML = `Waiting for the server to start (attempt ${attempt}/${MAX_RETRIES}). <span class="pulse-dots"><span></span><span></span><span></span></span>`;
+            await new Promise(r => setTimeout(r, RETRY_DELAY));
+            return tryTranscribe();
+          }
+          $processingCard.classList.remove('visible');
+          showError(err.message);
+        }
+      }
+
+      try {
+        await tryTranscribe();
+      } finally {
+        $btnTranscribe.disabled = false;
+        // Restore original processing card text for next use
+        $procTitle.innerHTML = origTitle;
+        $procSub.innerHTML = origSub;
+      }
+    });
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>
