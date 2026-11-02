@@ -11,7 +11,13 @@ import os
 import logging
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Query
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+from fastapi import FastAPI, File, UploadFile, HTTPException, Form, Query, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -95,13 +101,18 @@ async def transcribe(
     file: UploadFile = File(...),
     language: str | None = Form(None),
     lang: str | None = Query(None),
+    x_groq_api_key: str | None = Header(None, alias="X-Groq-Api-Key"),
 ):
     """
     Accept an audio/video file (up to 25 MB), send to Groq's whisper-large-v3,
     and return timestamped transcript JSON.
     """
     # 1. Check API Key
-    api_key = GROQ_API_KEY or os.getenv("GROQ_API_KEY", "").strip()
+    api_key = (
+        (x_groq_api_key or "").strip()
+        or GROQ_API_KEY
+        or os.getenv("GROQ_API_KEY", "").strip()
+    )
     if not api_key:
         raise HTTPException(
             status_code=500,
