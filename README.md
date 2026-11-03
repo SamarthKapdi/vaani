@@ -13,7 +13,7 @@ Deployable for **free on Vercel**, **Render**, **Koyeb**, or locally via **Docke
 - **🌐 90+ Languages Supported**: Automatic detection or explicit language lock (English, Hindi, etc.).
 - **▶️ Interactive Media Player**: Built-in player with speed controls (0.75x to 2x).
 - **⏱️ Clickable Timestamps**: Click any segment timestamp to seek and play media instantly.
-- **📁 Drag & Drop**: Accepts MP3, WAV, M4A, MP4, WebM, OGG, FLAC (up to 25 MB).
+- **📁 Drag & Drop**: Accepts MP3, WAV, M4A, MP4, WebM, OGG, FLAC (max 4.5 MB on Vercel).
 - **🚀 1-Click Serverless Deploy**: Deploys free on Vercel with zero credit card required.
 
 ---
@@ -64,7 +64,7 @@ Open **`http://localhost:8000`** in your browser.
 | `POST` | `/transcribe` | Upload media (`multipart/form-data`), returns JSON transcript |
 
 ### Request Parameters (`POST /transcribe`)
-- `file`: Audio or video file (max 25 MB)
+- `file`: Audio or video file (max 4.5 MB on Vercel, up to 25 MB on self-hosted Docker)
 - `language`: `auto` (default), `en`, `hi`, or any ISO language code
 
 ### Response Format

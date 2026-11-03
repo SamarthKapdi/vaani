@@ -28,7 +28,7 @@ from groq import Groq
 # ---------------------------------------------------------------------------
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
 GROQ_MODEL = os.getenv("GROQ_MODEL", "whisper-large-v3").strip()
-MAX_FILE_BYTES = 25 * 1024 * 1024  # 25 MB hard limit on Groq free tier
+MAX_FILE_BYTES = int(4.5 * 1024 * 1024)  # 4.5 MB hard limit on Vercel serverless functions
 
 ALLOWED_EXTENSIONS = {
     ".mp3", ".wav", ".m4a", ".ogg", ".webm", ".flac",
@@ -86,6 +86,7 @@ async def root():
 # Health Probe
 # ---------------------------------------------------------------------------
 @app.get("/health")
+@app.get("/api/health")
 async def health():
     """Readiness and configuration probe."""
     return {
@@ -93,7 +94,7 @@ async def health():
         "engine": "groq",
         "model": GROQ_MODEL,
         "api_key_configured": bool(GROQ_API_KEY),
-        "max_file_size_mb": 25,
+        "max_file_size_mb": 4.5,
     }
 
 
@@ -101,6 +102,7 @@ async def health():
 # Transcription Endpoint
 # ---------------------------------------------------------------------------
 @app.post("/transcribe")
+@app.post("/api/transcribe")
 async def transcribe(
     file: UploadFile = File(...),
     language: str | None = Form(None),
@@ -147,7 +149,7 @@ async def transcribe(
         size_mb = len(audio_bytes) / (1024 * 1024)
         raise HTTPException(
             status_code=413,
-            detail=f"File size ({size_mb:.1f} MB) exceeds the 25 MB limit for Groq Whisper. Please upload a smaller clip.",
+            detail=f"File size ({size_mb:.1f} MB) exceeds the 4.5 MB limit for Vercel serverless functions. Please compress or trim your file.",
         )
 
     # 5. Call Groq Whisper API
