@@ -32,7 +32,7 @@ MAX_FILE_BYTES = 25 * 1024 * 1024  # 25 MB hard limit on Groq free tier
 
 ALLOWED_EXTENSIONS = {
     ".mp3", ".wav", ".m4a", ".ogg", ".webm", ".flac",
-    ".mp4", ".mpeg", ".mpga", ".oga",
+    ".mp4", ".mpeg", ".mpga", ".oga", ".mkv", ".avi", ".mov",
 }
 
 logging.basicConfig(level=logging.INFO)

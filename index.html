@@ -187,6 +187,65 @@
     .dropzone input[type="file"] {
       display: none;
     }
+    .dropzone.has-file {
+      border-color: var(--accent);
+      background: rgba(139, 92, 246, 0.08);
+      box-shadow: 0 0 30px rgba(139, 92, 246, 0.12);
+    }
+    .selected-file-name {
+      display: inline-block;
+      max-width: 90%;
+      word-break: break-word;
+      color: var(--text-primary);
+      font-weight: 600;
+      font-size: 17px;
+    }
+    .selected-file-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+    .badge-size {
+      display: inline-flex;
+      align-items: center;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--accent-light);
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+    }
+    .btn-dz-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      font-size: 13px;
+      font-weight: 500;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all var(--transition);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+    }
+    .btn-dz-change:hover {
+      background: var(--accent-glow);
+      border-color: var(--accent);
+      color: #fff;
+    }
+    .btn-dz-remove {
+      color: var(--error);
+    }
+    .btn-dz-remove:hover {
+      background: var(--error-glow);
+      border-color: var(--error);
+      color: #fff;
+    }
 
     /* ================================================================
        File Info Bar
@@ -683,10 +742,10 @@
 
     <!-- Drop Zone -->
     <div class="dropzone" id="dropzone" role="button" tabindex="0">
-      <span class="dropzone-icon">📂</span>
-      <div class="dropzone-title">Drag & drop your file here</div>
-      <div class="dropzone-subtitle">or click to browse · <span>MP3, WAV, M4A, MP4, WebM, FLAC</span> · max 25 MB</div>
-      <input type="file" id="fileInput" accept="audio/*,video/*" style="display: none;" />
+      <span class="dropzone-icon" id="dropzoneIcon">📂</span>
+      <div class="dropzone-title" id="dropzoneTitle">Drag & drop your file here</div>
+      <div class="dropzone-subtitle" id="dropzoneSubtitle">or click to browse · <span>MP3, WAV, M4A, MP4, WebM, FLAC</span> · max 25 MB</div>
+      <input type="file" id="fileInput" accept="audio/*,video/*,.mp4,.mkv,.avi,.mov,.webm,.mp3,.wav,.m4a,.flac" style="display: none;" />
     </div>
 
     <!-- File Info -->
@@ -777,23 +836,26 @@
     /* ==================================================================
        DOM refs
        ================================================================== */
-    const $dropzone      = document.getElementById('dropzone');
-    const $fileInput     = document.getElementById('fileInput');
-    const $fileInfo      = document.getElementById('fileInfo');
-    const $fileName      = document.getElementById('fileName');
-    const $fileSize      = document.getElementById('fileSize');
-    const $fileRemove    = document.getElementById('fileRemove');
-    const $btnTranscribe = document.getElementById('btnTranscribe');
-    const $errorCard     = document.getElementById('errorCard');
-    const $errorMsg      = document.getElementById('errorMsg');
-    const $processingCard= document.getElementById('processingCard');
-    const $results       = document.getElementById('results');
-    const $transcriptText= document.getElementById('transcriptText');
-    const $segmentsList  = document.getElementById('segmentsList');
-    const $metaLang      = document.getElementById('metaLang');
-    const $metaDuration  = document.getElementById('metaDuration');
-    const $btnCopy       = document.getElementById('btnCopy');
-    const $langSelect    = document.getElementById('langSelect');
+    const $dropzone         = document.getElementById('dropzone');
+    const $dropzoneIcon     = document.getElementById('dropzoneIcon');
+    const $dropzoneTitle    = document.getElementById('dropzoneTitle');
+    const $dropzoneSubtitle = document.getElementById('dropzoneSubtitle');
+    const $fileInput        = document.getElementById('fileInput');
+    const $fileInfo         = document.getElementById('fileInfo');
+    const $fileName         = document.getElementById('fileName');
+    const $fileSize         = document.getElementById('fileSize');
+    const $fileRemove       = document.getElementById('fileRemove');
+    const $btnTranscribe    = document.getElementById('btnTranscribe');
+    const $errorCard        = document.getElementById('errorCard');
+    const $errorMsg         = document.getElementById('errorMsg');
+    const $processingCard   = document.getElementById('processingCard');
+    const $results          = document.getElementById('results');
+    const $transcriptText   = document.getElementById('transcriptText');
+    const $segmentsList     = document.getElementById('segmentsList');
+    const $metaLang         = document.getElementById('metaLang');
+    const $metaDuration     = document.getElementById('metaDuration');
+    const $btnCopy          = document.getElementById('btnCopy');
+    const $langSelect       = document.getElementById('langSelect');
 
     let selectedFile = null;
     let currentObjectUrl = null;
@@ -896,14 +958,31 @@
     function setFile(file) {
       if (!file) return;
       if (file.size > 25 * 1024 * 1024) {
-        showError(`File size (${formatBytes(file.size)}) exceeds the 25 MB limit for Groq Whisper. Please upload a smaller clip.`);
+        showError('File too large. Vercel and Groq APIs limit uploads to 25 MB. Please trim or compress your file.');
         clearFile();
         return;
       }
       selectedFile = file;
+      const isVideo = isVideoFile(file.name);
+
+      // UI Polish: Replace dropzone text with selected file details and action buttons
+      $dropzone.classList.add('has-file');
+      if ($dropzoneIcon) $dropzoneIcon.textContent = isVideo ? '🎬' : '🎵';
+      if ($dropzoneTitle) {
+        $dropzoneTitle.innerHTML = `<span class="selected-file-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>`;
+      }
+      if ($dropzoneSubtitle) {
+        $dropzoneSubtitle.innerHTML = `
+          <div class="selected-file-meta">
+            <span class="badge-size">${formatBytes(file.size)}</span>
+            <button type="button" class="btn-dz-action btn-dz-change" id="btnChangeFile" title="Choose another file">🔄 Change file</button>
+            <button type="button" class="btn-dz-action btn-dz-remove" id="btnRemoveFile" title="Remove selected file">✕ Remove</button>
+          </div>`;
+      }
+
       $fileName.textContent = file.name;
       $fileSize.textContent = formatBytes(file.size);
-      $fileInfo.classList.add('visible');
+      $fileInfo.classList.remove('visible');
       $btnTranscribe.disabled = false;
       setupMediaPlayer(file);
       hideError();
@@ -912,6 +991,14 @@
     function clearFile() {
       selectedFile = null;
       $fileInput.value = '';
+      $dropzone.classList.remove('has-file');
+      if ($dropzoneIcon) $dropzoneIcon.textContent = '📂';
+      if ($dropzoneTitle) $dropzoneTitle.textContent = 'Drag & drop your file here';
+      if ($dropzoneSubtitle) {
+        $dropzoneSubtitle.innerHTML = 'or click to browse · <span>MP3, WAV, M4A, MP4, WebM, FLAC</span> · max 25 MB';
+      }
+      $fileName.textContent = '—';
+      $fileSize.textContent = '—';
       $fileInfo.classList.remove('visible');
       $btnTranscribe.disabled = true;
       setupMediaPlayer(null);
@@ -922,33 +1009,54 @@
        Drag & Drop & File Picker Click
        ================================================================== */
     $dropzone.addEventListener('click', (e) => {
+      // If user clicked Remove button inside dropzone
+      if (e.target.closest('#btnRemoveFile')) {
+        e.stopPropagation();
+        clearFile();
+        return;
+      }
+      // If user clicked Change button or anywhere on dropzone
       if (e.target !== $fileInput) {
         $fileInput.click();
       }
     });
+
     $fileInput.addEventListener('click', (e) => {
       e.stopPropagation();
     });
+
     $dropzone.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
         $fileInput.click();
       }
     });
+
     $dropzone.addEventListener('dragover', e => {
       e.preventDefault();
       $dropzone.classList.add('drag-over');
     });
+
     $dropzone.addEventListener('dragleave', () => $dropzone.classList.remove('drag-over'));
+
     $dropzone.addEventListener('drop', e => {
       e.preventDefault();
       $dropzone.classList.remove('drag-over');
-      if (e.dataTransfer.files.length) setFile(e.dataTransfer.files[0]);
+      if (e.dataTransfer.files.length) {
+        setFile(e.dataTransfer.files[0]);
+      }
     });
+
     $fileInput.addEventListener('change', () => {
-      if ($fileInput.files.length) setFile($fileInput.files[0]);
+      if ($fileInput.files.length) {
+        setFile($fileInput.files[0]);
+      }
     });
-    $fileRemove.addEventListener('click', clearFile);
+
+    $fileRemove.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearFile();
+    });
 
     /* ==================================================================
        Tabs
@@ -982,6 +1090,10 @@
        ================================================================== */
     $btnTranscribe.addEventListener('click', async () => {
       if (!selectedFile) return;
+      if (selectedFile.size > 25 * 1024 * 1024) {
+        showError('File too large. Vercel and Groq APIs limit uploads to 25 MB. Please trim or compress your file.');
+        return;
+      }
       hideError();
       $results.classList.remove('visible');
       $processingCard.classList.add('visible');
