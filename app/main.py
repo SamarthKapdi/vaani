@@ -59,15 +59,19 @@ app.add_middleware(
 # Static Files & Frontend Routing
 # ---------------------------------------------------------------------------
 STATIC_DIR = Path(__file__).resolve().parent / "static"
+ROOT_DIR = Path(__file__).resolve().parent.parent
 
 if STATIC_DIR.exists():
     app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 
 
 @app.get("/")
+@app.get("/index.html")
 async def root():
     """Serve the frontend application."""
     index_file = STATIC_DIR / "index.html"
+    if not index_file.exists():
+        index_file = ROOT_DIR / "index.html"
     if index_file.exists():
         return FileResponse(str(index_file))
     return {

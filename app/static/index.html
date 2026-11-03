@@ -185,10 +185,7 @@
       font-weight: 500;
     }
     .dropzone input[type="file"] {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      cursor: pointer;
+      display: none;
     }
 
     /* ================================================================
@@ -685,11 +682,11 @@
     </div>
 
     <!-- Drop Zone -->
-    <div class="dropzone" id="dropzone">
+    <div class="dropzone" id="dropzone" role="button" tabindex="0">
       <span class="dropzone-icon">📂</span>
       <div class="dropzone-title">Drag & drop your file here</div>
       <div class="dropzone-subtitle">or click to browse · <span>MP3, WAV, M4A, MP4, WebM, FLAC</span> · max 25 MB</div>
-      <input type="file" id="fileInput" accept=".mp3,.wav,.mp4,.m4a,.ogg,.webm,.flac,.mpeg,.mpga,.oga" />
+      <input type="file" id="fileInput" accept="audio/*,video/*" style="display: none;" />
     </div>
 
     <!-- File Info -->
@@ -922,8 +919,22 @@
     }
 
     /* ==================================================================
-       Drag & Drop
+       Drag & Drop & File Picker Click
        ================================================================== */
+    $dropzone.addEventListener('click', (e) => {
+      if (e.target !== $fileInput) {
+        $fileInput.click();
+      }
+    });
+    $fileInput.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    $dropzone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        $fileInput.click();
+      }
+    });
     $dropzone.addEventListener('dragover', e => {
       e.preventDefault();
       $dropzone.classList.add('drag-over');
